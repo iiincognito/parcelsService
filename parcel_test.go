@@ -33,41 +33,30 @@ func getTestParcel() Parcel {
 func TestAddGetDelete(t *testing.T) {
 	// prepare
 	db, err := DBConn() // настройте подключение к БД
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+	defer db.Close()
 	store := NewParcelStore(db)
 	parcel := getTestParcel()
 
 	// add
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 	id, err := store.Add(parcel)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	parcel.Number = id // чтоб сравнить потом две структуры
 	require.NotEqual(t, 0, id)
 	// get
 	// получите только что добавленную посылку, убедитесь в отсутствии ошибки
 	// проверьте, что значения всех полей в полученном объекте совпадают со значениями полей в переменной parcel
 	p, err := store.Get(id)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	assert.Equal(t, parcel, p)
 	// delete
 	// удалите добавленную посылку, убедитесь в отсутствии ошибки
 	// проверьте, что посылку больше нельзя получить из БД
 	err = store.Delete(id)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	p, err = store.Get(id)
-	if err != nil {
-		if !assert.ErrorIs(t, err, sql.ErrNoRows) {
-			t.Fatal(err)
-		}
-	}
+	require.Error(t, err, sql.ErrNoRows)
 
 }
 
@@ -75,10 +64,8 @@ func TestAddGetDelete(t *testing.T) {
 func TestSetAddress(t *testing.T) {
 	// prepare
 	db, err := DBConn() // настройте подключение к БД
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	require.NoError(t, err)
+	defer db.Close()
 	// add
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 	store := NewParcelStore(db)
@@ -87,22 +74,17 @@ func TestSetAddress(t *testing.T) {
 	// add
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 	id, err := store.Add(parcel)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	require.NotEqual(t, 0, id)
 
 	// set address
 	// обновите адрес, убедитесь в отсутствии ошибки
 	newAddress := "new test address"
 	err = store.SetAddress(id, newAddress)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	p, err := store.Get(id)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	assert.Equal(t, newAddress, p.Address)
 	// check
 	// получите добавленную посылку и убедитесь, что адрес обновился
@@ -112,29 +94,22 @@ func TestSetAddress(t *testing.T) {
 func TestSetStatus(t *testing.T) {
 
 	db, err := DBConn() // настройте подключение к БД
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+	defer db.Close()
 	store := NewParcelStore(db)
 	parcel := getTestParcel()
 	id, err := store.Add(parcel)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	require.NotEqual(t, 0, id)
 	// add
 	// добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 
 	err = store.SetStatus(id, ParcelStatusSent)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	// set status
 	// обновите статус, убедитесь в отсутствии ошибки
 	res, err := store.Get(id)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	assert.Equal(t, ParcelStatusSent, res.Status)
 	// check
 	// получите добавленную посылку и убедитесь, что статус обновился
@@ -144,9 +119,8 @@ func TestSetStatus(t *testing.T) {
 func TestGetByClient(t *testing.T) {
 
 	db, err := DBConn() // настройте подключение к БД
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+	defer db.Close()
 	store := NewParcelStore(db)
 	parcels := []Parcel{
 		getTestParcel(),
@@ -164,9 +138,7 @@ func TestGetByClient(t *testing.T) {
 	// add
 	for i := 0; i < len(parcels); i++ {
 		id, err := store.Add(parcels[i])
-		if err != nil {
-			t.Fatal(err)
-		} // добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
+		require.NoError(t, err) // добавьте новую посылку в БД, убедитесь в отсутствии ошибки и наличии идентификатора
 		// обновляем идентификатор добавленной у посылки
 		parcels[i].Number = id
 		// сохраняем добавленную посылку в структуру map, чтобы её можно было легко достать по идентификатору посылки
@@ -175,9 +147,7 @@ func TestGetByClient(t *testing.T) {
 
 	// get by client
 	storedParcels, err := store.GetByClient(client) // получите список посылок по идентификатору клиента, сохранённого в переменной client
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	assert.Equal(t, len(parcels), len(storedParcels))
 	// убедитесь в отсутствии ошибки
 	// убедитесь, что количество полученных посылок совпадает с количеством добавленных
