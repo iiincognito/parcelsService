@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/joho/godotenv"
+	"os"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -96,10 +98,31 @@ func (s ParcelService) Delete(number int) error {
 	return s.store.Delete(number)
 }
 
+func DBConn() (*sql.DB, error) {
+	err := godotenv.Load()
+	if err != nil {
+		return nil, err
+	}
+	drvr := os.Getenv("DB_DRIVER")
+	conn := os.Getenv("DB_CONN")
+	db, err := sql.Open(drvr, conn)
+	if err != nil {
+		return nil, err
+	}
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
 func main() {
 	// настройте подключение к БД
-
-	store := // создайте объект ParcelStore функцией NewParcelStore
+	db, err := DBConn()
+	if err != nil {
+		panic(err)
+	}
+	store := NewParcelStore(db) // создайте объект ParcelStore функцией NewParcelStore
 	service := NewParcelService(store)
 
 	// регистрация посылки
